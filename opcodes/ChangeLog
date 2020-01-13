@@ -1,3 +1,137 @@
+2020-01-13  Alan Modra  <amodra@gmail.com>
+
+	* score-dis.c: Formatting.
+	* score7-dis.c: Formatting.
+
+2020-01-13  Alan Modra  <amodra@gmail.com>
+
+	* score-dis.c (print_insn_score48): Use unsigned variables for
+	unsigned values.  Don't left shift negative values.
+	(print_insn_score32): Likewise.
+	* score7-dis.c (print_insn_score32, print_insn_score16): Likewise.
+
+2020-01-13  Alan Modra  <amodra@gmail.com>
+
+	* tic4x-dis.c (tic4x_print_register): Remove dead code.
+
+2020-01-13  Alan Modra  <amodra@gmail.com>
+
+	* fr30-ibld.c: Regenerate.
+
+2020-01-13  Alan Modra  <amodra@gmail.com>
+
+	* xgate-dis.c (print_insn): Don't left shift signed value.
+	(ripBits): Formatting, use 1u.
+
+2020-01-10  Alan Modra  <amodra@gmail.com>
+
+	* tilepro-opc.c (parse_insn_tilepro): Make opval unsigned.
+	* tilegx-opc.c (parse_insn_tilegx): Likewise.  Delete raw_opval.
+
+2020-01-10  Alan Modra  <amodra@gmail.com>
+
+	* m10300-dis.c (disassemble): Move extraction of DREG, AREG, RREG,
+	and XRREG value earlier to avoid a shift with negative exponent.
+	* m10200-dis.c (disassemble): Similarly.
+
+2020-01-09  Nick Clifton  <nickc@redhat.com>
+
+	PR 25224
+	* z80-dis.c (ld_ii_ii): Use correct cast.
+
+2020-01-03  Sergey Belyashov  <sergey.belyashov@gmail.com>
+
+	PR 25224
+	* z80-dis.c (ld_ii_ii): Use character constant when checking
+	opcode byte value.
+
+2020-01-09  Jan Beulich  <jbeulich@suse.com>
+
+	* i386-dis.c (SEP_Fixup): New.
+	(SEP): Define.
+	(dis386_twobyte): Use it for sysenter/sysexit.
+	(enum x86_64_isa): Change amd64 enumerator to value 1.
+	(OP_J): Compare isa64 against intel64 instead of amd64.
+	* i386-opc.tbl (sysenter, sysexit): Split into AMD64 and Intel64
+	forms.
+	* i386-tbl.h: Re-generate.
+
+2020-01-08  Alan Modra  <amodra@gmail.com>
+
+	* z8k-dis.c: Include libiberty.h
+	(instr_data_s): Make max_fetched unsigned.
+	(z8k_lookup_instr): Make nibl_index and tabl_index unsigned.
+	Don't exceed byte_info bounds.
+	(output_instr): Make num_bytes unsigned.
+	(unpack_instr): Likewise for nibl_count and loop.
+	* z8kgen.c (gas <opcode_entry_type>): Make noperands, length and
+	idx unsigned.
+	* z8k-opc.h: Regenerate.
+
+2020-01-07  Shahab Vahedi  <shahab@synopsys.com>
+
+	* arc-tbl.h (llock): Use 'LLOCK' as class.
+	(llockd): Likewise.
+	(scond): Use 'SCOND' as class.
+	(scondd): Likewise.
+	(llockd): Set data_size_mode to 'C_ZZ_D' which is 64-bit.
+	(scondd): Likewise.
+
+2020-01-06  Alan Modra  <amodra@gmail.com>
+
+	* m32c-ibld.c: Regenerate.
+
+2020-01-06  Alan Modra  <amodra@gmail.com>
+
+	PR 25344
+	* z80-dis.c (suffix): Don't use a local struct buffer copy.
+	Peek at next byte to prevent recursion on repeated prefix bytes.
+	Ensure uninitialised "mybuf" is not accessed.
+	(print_insn_z80): Don't zero n_fetch and n_used here,..
+	(print_insn_z80_buf): ..do it here instead.
+
+2020-01-04  Alan Modra  <amodra@gmail.com>
+
+	* m32r-ibld.c: Regenerate.
+
+2020-01-04  Alan Modra  <amodra@gmail.com>
+
+	* cr16-dis.c (cr16_match_opcode): Avoid shift left of signed value.
+
+2020-01-04  Alan Modra  <amodra@gmail.com>
+
+	* crx-dis.c (match_opcode): Avoid shift left of signed value.
+
+2020-01-04  Alan Modra  <amodra@gmail.com>
+
+	* d30v-dis.c (print_insn): Avoid signed overflow in left shift.
+
+2020-01-03  Jan Beulich  <jbeulich@suse.com>
+
+	* aarch64-tbl.h (aarch64_opcode_table): Use
+	SVE_ADDR_RX_LSL{1,2,3} for LD1RO{H,W,D}.
+
+2020-01-03  Jan Beulich  <jbeulich@suse.com>
+
+	* aarch64-tbl.h (aarch64_opcode_table): Correct SIMD
+	forms of SUDOT and USDOT.
+
+2020-01-03  Jan Beulich  <jbeulich@suse.com>
+
+	* aarch64-tbl.h (aarch64_opcode_table): Drop 'i' from
+	uzip{1,2}.
+	* opcodes/aarch64-dis-2.c: Re-generate.
+
+2020-01-03  Jan Beulich  <jbeulich@suse.com>
+
+	* aarch64-tbl.h (aarch64_opcode_table): Correct 64-bit
+	FMMLA encoding.
+	* opcodes/aarch64-dis-2.c: Re-generate.
+
+2020-01-02  Sergey Belyashov  <sergey.belyashov@gmail.com>
+
+	* z80-dis.c: Add support for eZ80 and Z80 instructions.
+
 2020-01-01  Alan Modra  <amodra@gmail.com>
 
 	Update year range in copyright notice of all files.

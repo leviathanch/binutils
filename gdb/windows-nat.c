@@ -68,6 +68,7 @@
 #include "inf-child.h"
 #include "gdbsupport/gdb_tilde_expand.h"
 #include "gdbsupport/pathstuff.h"
+#include "gdbsupport/gdb_wait.h"
 
 #define AdjustTokenPrivileges		dyn_AdjustTokenPrivileges
 #define DebugActiveProcessStop		dyn_DebugActiveProcessStop
@@ -349,6 +350,8 @@ struct windows_nat_target final : public x86_nat_target<inf_child_target>
   bool get_tib_address (ptid_t ptid, CORE_ADDR *addr) override;
 
   const char *thread_name (struct thread_info *) override;
+
+  int get_windows_debug_event (int pid, struct target_waitstatus *ourstatus);
 };
 
 static windows_nat_target the_windows_nat_target;
@@ -457,9 +460,9 @@ windows_add_thread (ptid_t ptid, HANDLE h, void *tlb, bool main_thread_p)
      the main thread silently (in reality, this thread is really
      more of a process to the user than a thread).  */
   if (main_thread_p)
-    add_thread_silent (ptid);
+    add_thread_silent (&the_windows_nat_target, ptid);
   else
-    add_thread (ptid);
+    add_thread (&the_windows_nat_target, ptid);
 
   /* Set the debug registers for the new thread if they are used.  */
   if (debug_registers_used)
@@ -528,7 +531,7 @@ windows_delete_thread (ptid_t ptid, DWORD exit_code, bool main_thread_p)
 		       target_pid_to_str (ptid).c_str (),
 		       (unsigned) exit_code);
 
-  delete_thread (find_thread_ptid (ptid));
+  delete_thread (find_thread_ptid (&the_windows_nat_target, ptid));
 
   for (th = &thread_head;
        th->next != NULL && th->next->id != id;
@@ -940,7 +943,14 @@ catch_errors (void (*func) ())
 static void
 windows_clear_solib (void)
 {
-  solib_start.next = NULL;
+  struct so_list *so;
+
+  for (so = solib_start.next; so; so = solib_start.next)
+    {
+      solib_start.next = so->next;
+      windows_free_so (so);
+    }
+
   solib_end = &solib_start;
 }
 
@@ -1516,9 +1526,10 @@ ctrl_c_handler (DWORD event_type)
 
 /* Get the next event from the child.  Returns a non-zero thread id if the event
    requires handling by WFI (or whatever).  */
-static int
-get_windows_debug_event (struct target_ops *ops,
-			 int pid, struct target_waitstatus *ourstatus)
+
+int
+windows_nat_target::get_windows_debug_event (int pid,
+					     struct target_waitstatus *ourstatus)
 {
   BOOL debug_event;
   DWORD continue_status, event_code;
@@ -1548,8 +1559,7 @@ get_windows_debug_event (struct target_ops *ops,
 		     "CREATE_THREAD_DEBUG_EVENT"));
       if (saw_create != 1)
 	{
-	  struct inferior *inf;
-	  inf = find_inferior_pid (current_event.dwProcessId);
+	  inferior *inf = find_inferior_pid (this, current_event.dwProcessId);
 	  if (!saw_create && inf->attach_flag)
 	    {
 	      /* Kludge around a Windows bug where first event is a create
@@ -1620,8 +1630,23 @@ get_windows_debug_event (struct target_ops *ops,
 	  windows_delete_thread (ptid_t (current_event.dwProcessId, 0,
 					 current_event.dwThreadId),
 				 0, true /* main_thread_p */);
-	  ourstatus->kind = TARGET_WAITKIND_EXITED;
-	  ourstatus->value.integer = current_event.u.ExitProcess.dwExitCode;
+	  DWORD exit_status = current_event.u.ExitProcess.dwExitCode;
+	  /* If the exit status looks like a fatal exception, but we
+	     don't recognize the exception's code, make the original
+	     exit status value available, to avoid losing
+	     information.  */
+	  int exit_signal
+	    = WIFSIGNALED (exit_status) ? WTERMSIG (exit_status) : -1;
+	  if (exit_signal == -1)
+	    {
+	      ourstatus->kind = TARGET_WAITKIND_EXITED;
+	      ourstatus->value.integer = exit_status;
+	    }
+	  else
+	    {
+	      ourstatus->kind = TARGET_WAITKIND_SIGNALLED;
+	      ourstatus->value.sig = gdb_signal_from_host (exit_signal);
+	    }
 	  thread_id = current_event.dwThreadId;
 	}
       break;
@@ -1756,7 +1781,7 @@ windows_nat_target::wait (ptid_t ptid, struct target_waitstatus *ourstatus,
 	     the user tries to resume the execution in the inferior.
 	     This is a classic race that we should try to fix one day.  */
       SetConsoleCtrlHandler (&ctrl_c_handler, TRUE);
-      retval = get_windows_debug_event (this, pid, ourstatus);
+      retval = get_windows_debug_event (pid, ourstatus);
       SetConsoleCtrlHandler (&ctrl_c_handler, FALSE);
 
       if (retval)

@@ -101,6 +101,12 @@ struct stap_probe_arg
 class stap_static_probe_ops : public static_probe_ops
 {
 public:
+  /* We need a user-provided constructor to placate some compilers.
+     See PR build/24937.  */
+  stap_static_probe_ops ()
+  {
+  }
+
   /* See probe.h.  */
   bool is_linespec (const char **linespecp) const override;
 
@@ -1284,8 +1290,7 @@ stap_probe::parse_arguments (struct gdbarch *gdbarch)
 static CORE_ADDR
 relocate_address (CORE_ADDR address, struct objfile *objfile)
 {
-  return address + ANOFFSET (objfile->section_offsets,
-			     SECT_OFF_DATA (objfile));
+  return address + objfile->section_offsets[SECT_OFF_DATA (objfile)];
 }
 
 /* Implementation of the get_relocated_address method.  */
@@ -1425,9 +1430,6 @@ stap_modify_semaphore (CORE_ADDR address, int set, struct gdbarch *gdbarch)
   struct type *type = builtin_type (gdbarch)->builtin_unsigned_short;
   ULONGEST value;
 
-  if (address == 0)
-    return;
-
   /* Swallow errors.  */
   if (target_read_memory (address, bytes, TYPE_LENGTH (type)) != 0)
     {
@@ -1461,6 +1463,8 @@ stap_modify_semaphore (CORE_ADDR address, int set, struct gdbarch *gdbarch)
 void
 stap_probe::set_semaphore (struct objfile *objfile, struct gdbarch *gdbarch)
 {
+  if (m_sem_addr == 0)
+    return;
   stap_modify_semaphore (relocate_address (m_sem_addr, objfile), 1, gdbarch);
 }
 
@@ -1469,6 +1473,8 @@ stap_probe::set_semaphore (struct objfile *objfile, struct gdbarch *gdbarch)
 void
 stap_probe::clear_semaphore (struct objfile *objfile, struct gdbarch *gdbarch)
 {
+  if (m_sem_addr == 0)
+    return;
   stap_modify_semaphore (relocate_address (m_sem_addr, objfile), 0, gdbarch);
 }
 

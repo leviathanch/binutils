@@ -1,3 +1,86 @@
+2020-01-07  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-mips-elf/eh-frame5.s,
+	* testsuite/ld-mips-elf/ehdr_start-new.s,
+	* testsuite/ld-mips-elf/ehdr_start-o32.s,
+	* testsuite/ld-mips-elf/mips16-call-global-1.s,
+	* testsuite/ld-mips-elf/mips16-intermix-1.s,
+	* testsuite/ld-mips-elf/mips16-pic-1b.s,
+	* testsuite/ld-mips-elf/mips16-pic-4c.s,
+	* testsuite/ld-mips-elf/no-shared-1-n64.s,
+	* testsuite/ld-mips-elf/no-shared-1-o32.s,
+	* testsuite/ld-mips-elf/pic-and-nonpic-1b-micromips.s,
+	* testsuite/ld-mips-elf/pic-and-nonpic-1b.s,
+	* testsuite/ld-mips-elf/pic-and-nonpic-2a.s,
+	* testsuite/ld-mips-elf/pic-and-nonpic-3b.s,
+	* testsuite/ld-mips-elf/pic-and-nonpic-4b.s,
+	* testsuite/ld-mips-elf/pic-and-nonpic-5a.s,
+	* testsuite/ld-mips-elf/pic-and-nonpic-6-n32c.s,
+	* testsuite/ld-mips-elf/pic-and-nonpic-6-n64c.s,
+	* testsuite/ld-mips-elf/pic-and-nonpic-6-o32c.s,
+	* testsuite/ld-mips-elf/pie.s,
+	* testsuite/ld-mips-elf/relax-jalr.s: Revert 2019-12-17 change.
+
+2020-01-06  Nick Clifton  <nickc@redhat.com>
+
+	PR 25327
+	* testsuite/ld-elf/shared.exp: Add -fcommon option to compiler
+	command line when building libcomm1.o and pr13250 tests.
+	* testsuite/ld-plugin/lto.exp: Likewise for pr20267 tests.
+
+2020-01-06  Nick Clifton  <nickc@redhat.com>
+
+	PR 25326
+	* testsuite/ld-elf/shared.exp: Add -fcommon option to compiler
+	command line when building pr19579 binaries.
+
+2020-01-03  Hannes Domani  <ssbssa@yahoo.de>
+
+	* emultempl/pe.em: Add new option --enable-reloc-section.
+	* emultempl/pep.em: Likewise.
+	* ld.texi: Document --enable-reloc-section.
+	* pe-dll.c (pe_dll_build_sections): Use pe_dll_enable_reloc_section.
+	(pe_dll_fill_sections): Simplify by calling pe_exe_fill_sections.
+	* pe-dll.h: Add extern declaration of option flag.
+	* pep-dll.c (pe_dll_enable_reloc_section):
+	Add alias define for pep_dll_enable_reloc_section.
+	* pep-dll.h: Add extern declaration of option flag.
+
+2020-01-02  Sergey Belyashov  <sergey.belyashov@gmail.com>
+
+	* Makefile.am: Add new target z80-elf
+	* configure.tgt: Likewise.
+	* Makefile.in: Regenerate.
+	* emultempl/z80.em: Add support for eZ80 and Z180 architectures.
+	* emulparams/elf32z80.sh: New file.
+	* emultempl/z80elf.em: Likewise.
+	* testsuite/ld-elf/comm-data4.s: Fix for Z80.
+	* testsuite/ld-elf/comm-data5.s: Fix for Z80.
+	* testsuite/ld-scripts/fill16.d: Fix for Z80.
+	* testsuite/ld-z80/arch_ez80_adl.d: Likewise.
+	* testsuite/ld-z80/arch_ez80_z80.d: Likewise.
+	* testsuite/ld-z80/arch_r800.d: Likewise.
+	* testsuite/ld-z80/arch_z180.d: Likewise.
+	* testsuite/ld-z80/arch_z80.d: Likewise.
+	* testsuite/ld-z80/comb_arch_ez80_z80.d: Likewise.
+	* testsuite/ld-z80/comb_arch_z180.d: Likewise.
+	* testsuite/ld-z80/labels.s: Likewise.
+	* testsuite/ld-z80/relocs.s: Likewise.
+	* testsuite/ld-z80/relocs_b_ez80.d: Likewise.
+	* testsuite/ld-z80/relocs_b_z80.d: Likewise.
+	* testsuite/ld-z80/relocs_f_z80.d: Likewise.
+	* testsuite/ld-z80/z80.exp: Likewise.
+	* NEWS: Mention the new support.
+
+2020-01-02  Tamar Christina  <tamar.christina@arm.com>
+
+	PR 25210
+	PR 24753
+	* emultempl/aarch64elf.em (elf${ELFSIZE}_aarch64_add_stub_section):
+	Remove SEC_LINKER_CREATED.
+	* testsuite/ld-aarch64/aarch64-elf.exp: Add erratum835769-843419.
+	* testsuite/ld-aarch64/erratum835769-843419.d: New test.
+
 2020-01-01  Alan Modra  <amodra@gmail.com>
 
 	Update year range in copyright notice of all files.
