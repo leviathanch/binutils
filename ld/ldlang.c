@@ -6586,6 +6586,8 @@ lang_init_startof_sizeof (void)
 static void
 set_start_stop (struct bfd_link_hash_entry *h)
 {
+  if(h==-1) return;
+
   if (h->ldscript_def
       || h->type != bfd_link_hash_defined)
     return;
