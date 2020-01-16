@@ -508,7 +508,7 @@ bfd_link_hash_lookup (struct bfd_link_hash_table *table,
 {
   struct bfd_link_hash_entry *ret;
 
-  if (table == NULL || string == NULL)
+  if (table == NULL || string == NULL || string[0]=='\0' )
     return NULL;
 
   ret = ((struct bfd_link_hash_entry *)
