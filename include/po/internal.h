@@ -1,7 +1,7 @@
 /* IBM z/OS Program Object support
-   Copyright (C) 2018 Rocket Software
-   Contributed by Michael Colavita (mcolavita@rocketsoftware.com)
- 
+   Copyright (C) 2019 Free Software Foundation, Inc.
+   Contributed by Michael Colavita <mcolavita@rocketsoftware.com>.
+
    This file is part of BFD, the Binary File Descriptor library.
 
    This program is free software; you can redistribute it and/or modify
@@ -21,6 +21,8 @@
 
 #ifndef _PO_INTERNAL_H
 #define _PO_INTERNAL_H
+
+#include "common.h"
 
 struct po_internal_plmh;
 struct po_internal_header_rec_decl;
@@ -117,6 +119,8 @@ struct po_internal_prat {
   unsigned int occupied_entries;
   unsigned int total_entries;
   unsigned short single_entry_length;
+  unsigned short unknown_flags;  /* This is kind of a mystery.
+				    We have seen 0x0000 and 0x0008.  */
 };
 
 struct po_internal_prdt {
@@ -131,24 +135,16 @@ struct po_internal_prdt_page_header {
   unsigned short segment_index;
   unsigned char checksum[4];
   unsigned short count;
+
+  /* The page has a reloc in the first 4 bytes and should have
+     its checksum set to 'noch' in EBCDIC.  */
+  bfd_boolean no_checksum;
 };
 
-struct po_internal_prdt_page_reloc_header {
-  unsigned char flags;
+struct po_internal_prdt_reloc_header {
+  unsigned char type;
   unsigned char reference_id;
   unsigned short reloc_count;
-};
-
-
-enum po_reloc_type {
-  R_390_PO_32,
-  R_390_PO_64
-};
-
-struct po_internal_prdt_entry {
-  enum po_reloc_type reloc_type; /* This is temporary before we enumerate */
-  bfd_vma full_offset;
-  unsigned long addend;
 };
 
 struct po_internal_lidx {
@@ -177,5 +173,14 @@ struct po_internal_lidx_entry {
   bfd_size_type entry_length;
 };
 
-#endif
+/* The abstract representation of a relocation/PRDT entry.  */
+/* z/OS TODO: switch to using HOWTOs.  */
 
+struct po_internal_relent {
+  enum po_reloc_type	type;
+  unsigned char		flags;	/* only used for some types.  */
+  bfd_vma		offset;
+  bfd_vma		addend;
+};
+
+#endif

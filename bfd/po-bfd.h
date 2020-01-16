@@ -1,7 +1,7 @@
-/* IBM z/OS Program Object support
-   Copyright (C) 2018 Rocket Software
-   Contributed by Michael Colavita (mcolavita@rocketsoftware.com)
- 
+/* IBM z/OS Program Object support.
+   Copyright (C) 2019 Free Software Foundation, Inc.
+   Contributed by Michael Colavita <mcolavita@rocketsoftware.com>.
+
    This file is part of BFD, the Binary File Descriptor library.
 
    This program is free software; you can redistribute it and/or modify
@@ -51,6 +51,8 @@
 #define po_prat_pad_bytes(bfd)             (po_tdata(bfd) -> prat_pad_bytes)
 #define po_headers_computed(bfd)           (po_tdata(bfd) -> headers_computed)
 #define po_section_contents(bfd)           (po_tdata(bfd) -> section_contents)
+#define po_sizes_computed(bfd)		(po_tdata(bfd)->sizes_computed)
+#define po_tbss(bfd)			(po_tdata (bfd)->tbss)
 
 struct po_obj_tdata {
   /* High level internal structures */
@@ -65,7 +67,7 @@ struct po_obj_tdata {
 
   /* Repeating internal structures TODO: refactor? */
   struct po_internal_header_rec_decl       *rec_decls;
-  struct po_internal_prdt_entry           **prdt_entries;
+  struct po_internal_relent               **prdt_entries;
   struct po_internal_prdt_page_header      *prdt_page_headers;
   struct po_internal_lidx_entry            *lidx_entries;
   struct po_internal_psegm_entry           *psegm_entries;
@@ -81,6 +83,10 @@ struct po_obj_tdata {
   unsigned int                              text_pad_words;
   unsigned int                              prat_pad_bytes;
   bfd_boolean                               headers_computed;
+  bfd_boolean                               sizes_computed;
+
+  /* TLS template information.  */
+  asection				   *tbss;
 };
 
 #endif
