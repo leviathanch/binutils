@@ -6521,6 +6521,7 @@ foreach_start_stop (void (*func) (struct bfd_link_hash_entry *))
 static void
 undef_start_stop (struct bfd_link_hash_entry *h)
 {
+  if (h==-1) return;
   if (h->ldscript_def)
     return;
 
