@@ -341,6 +341,7 @@ bfd_po_finalize_header (bfd *abfd)
 
   unsigned int rec_num = 0;
   unsigned int file_pos = 0;
+  size_t amt;
 
   /* Finalize header */
   const unsigned int rec_count = 8;
@@ -348,7 +349,13 @@ bfd_po_finalize_header (bfd *abfd)
   po_header(abfd).rec_decl_count = rec_count;
 
   po_rec_decl_count(abfd) = rec_count;
-  po_rec_decls(abfd) = bfd_zmalloc2(rec_count, sizeof(struct po_internal_header_rec_decl));
+  if (_bfd_mul_overflow (rec_count, sizeof(struct po_internal_header_rec_decl), &amt))
+    {
+      bfd_set_error (bfd_error_file_too_big);
+      return FALSE;
+    }
+  po_rec_decls(abfd) = bfd_zalloc (abfd, amt);
+
   if (po_rec_decls(abfd) == NULL)
     return FALSE;
 
@@ -359,7 +366,13 @@ bfd_po_finalize_header (bfd *abfd)
   const char po_name[] = "HELLO   ";
   const unsigned int aliases = 1;
   po_name_header(abfd).alias_count = aliases;
-  po_name_header_entries(abfd) = bfd_zmalloc2(aliases, PO_NAME_HEADER_ENTRY_SIZE);
+  if (_bfd_mul_overflow (aliases, PO_NAME_HEADER_ENTRY_SIZE, &amt))
+    {
+      bfd_set_error (bfd_error_file_too_big);
+      return FALSE;
+    }
+  po_name_header_entries(abfd) = bfd_zalloc (abfd, amt);
+
   if (po_name_header_entries(abfd) == NULL) /* TODO leaks */
     return FALSE;
   po_rec_decls(abfd)[rec_num ++] = (struct po_internal_header_rec_decl) {
@@ -378,7 +391,13 @@ bfd_po_finalize_header (bfd *abfd)
     .alias_marker = { 0, 0 }
   };
 
-  po_names(abfd) = bfd_zmalloc2(aliases, sizeof(char *));
+  if (_bfd_mul_overflow (aliases, sizeof(char *), &amt))
+    {
+      bfd_set_error (bfd_error_file_too_big);
+      return FALSE;
+    }
+  po_names(abfd) = bfd_zalloc (abfd, amt);
+
   if (po_names(abfd) == NULL)
     return FALSE;
   po_names(abfd)[0] = bfd_zmalloc(strlen(po_name));
@@ -493,7 +512,13 @@ bfd_po_finalize_header (bfd *abfd)
   /* Finalize LIDX */
   const unsigned int lidx_elements = 1;
   unsigned int lidx_element_num = 0;
-  po_lidx_entries(abfd) = bfd_zmalloc2(lidx_elements, sizeof(struct po_internal_lidx_entry));
+  if (_bfd_mul_overflow (lidx_elements, sizeof(struct po_internal_lidx_entry), &amt))
+    {
+      bfd_set_error (bfd_error_file_too_big);
+      return FALSE;
+    }
+  po_lidx_entries(abfd) = bfd_zalloc (abfd, amt);
+
   if (po_lidx_entries(abfd) == NULL)
     return FALSE;
 
@@ -510,7 +535,13 @@ bfd_po_finalize_header (bfd *abfd)
 
   /* Finalize PSEGM */
   const unsigned int segments = 1;
-  po_psegm_entries(abfd) = bfd_zmalloc2(segments, sizeof(struct po_internal_psegm_entry));
+  if (_bfd_mul_overflow (segments, sizeof(struct po_internal_psegm_entry), &amt))
+    {
+      bfd_set_error (bfd_error_file_too_big);
+      return FALSE;
+    }
+  po_psegm_entries(abfd) = bfd_zalloc (abfd, amt);
+
   if (po_psegm_entries(abfd) == NULL)
     return FALSE;
 
@@ -1084,6 +1115,7 @@ bfd_po_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
 static bfd_boolean
 bfd_po_initialize_prat_prdt (bfd *abfd)
 {
+  size_t amt;
   bfd_size_type page_count =
     ROUND_UP (po_text_length (abfd), 0x1000) / 0x1000;
 
@@ -1103,8 +1135,13 @@ bfd_po_initialize_prat_prdt (bfd *abfd)
 	  sizeof (eyecatcher_prdt));
 
   /* z/OS TODO: this is wasteful.  */
-  po_prdt_page_headers (abfd) =
-    bfd_zmalloc2 (page_count, sizeof (struct po_internal_prdt_page_header));
+  if (_bfd_mul_overflow (page_count, sizeof (struct po_internal_prdt_page_header), &amt))
+    {
+      bfd_set_error (bfd_error_file_too_big);
+      return FALSE;
+    }
+  po_prdt_page_headers (abfd) = bfd_zalloc (abfd, amt);
+
   if (po_prdt_page_headers (abfd) == NULL)
     return FALSE;
 
@@ -1116,8 +1153,13 @@ bfd_po_initialize_prat_prdt (bfd *abfd)
       po_prdt_page_headers (abfd)[page].no_checksum = FALSE;
     }
 
-  po_prdt_entries (abfd) =
-    bfd_zmalloc2 (page_count, sizeof (struct po_internal_relent *));
+  if (_bfd_mul_overflow (page_count, sizeof (struct po_internal_relent *), &amt))
+    {
+      bfd_set_error (bfd_error_file_too_big);
+      return FALSE;
+    }
+  po_prdt_entries (abfd) = bfd_zalloc (abfd, amt);
+
   if (po_prdt_entries (abfd) == NULL)
     return FALSE;
 
@@ -1130,7 +1172,13 @@ bfd_po_initialize_prat_prdt (bfd *abfd)
   memcpy (po_prat (abfd).fixed_eyecatcher, eyecatcher_prat,
 	  sizeof (eyecatcher_prat));
 
-  po_prat_entries (abfd) = bfd_zmalloc2 (sizeof (bfd_vma), page_count + 1);
+  if (_bfd_mul_overflow (sizeof (bfd_vma), page_count + 1, &amt))
+    {
+      bfd_set_error (bfd_error_file_too_big);
+      return FALSE;
+    }
+  po_prat_entries (abfd) = bfd_zalloc (abfd, amt);
+
   if (po_prat_entries (abfd) == NULL)
     return FALSE;
 
@@ -1148,6 +1196,7 @@ static bfd_boolean
 add_prdt_entry (bfd *abfd, bfd_vma offset, arelent *reloc)
 {
   bfd_vma addend;
+  size_t amt;
   unsigned int entry_count;
   struct po_internal_relent *entry;
   bfd_size_type page_number = offset / 0x1000;
@@ -1177,9 +1226,13 @@ add_prdt_entry (bfd *abfd, bfd_vma offset, arelent *reloc)
     {
       /* reallocation required */
       unsigned int new_size = entry_count ? entry_count * 2 : 4;
-      po_prdt_entries (abfd)[page_number] =
-	bfd_realloc2 (po_prdt_entries (abfd)[page_number],
-		      new_size, sizeof (struct po_internal_relent));
+      if (_bfd_mul_overflow (new_size, sizeof (struct po_internal_relent), &amt))
+        {
+          bfd_set_error (bfd_error_file_too_big);
+          return FALSE;
+        }
+      po_prdt_entries (abfd)[page_number] = bfd_realloc (po_prdt_entries (abfd)[page_number], amt);
+
       if (po_prdt_entries (abfd)[page_number] == NULL)
 	return FALSE;
     }
