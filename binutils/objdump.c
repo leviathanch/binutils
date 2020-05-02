@@ -4945,6 +4945,19 @@ display_object_bfd (bfd *abfd)
       return;
     }
 
+  if( bfd_is_zos_binary(abfd) )
+    {
+      dump_bfd_zos (abfd, TRUE);
+
+      dump_bfd (abfd, TRUE);
+
+      dump_bfd_header (abfd);
+
+      dump_data (abfd);
+
+      return;
+    }
+
   nonfatal (bfd_get_filename (abfd));
 
   if (bfd_get_error () == bfd_error_file_ambiguously_recognized)
