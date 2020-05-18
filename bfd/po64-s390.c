@@ -72,12 +72,12 @@ const unsigned char iso88591_to_ibm1047[256] = {
 /* E */ 0x44, 0x45, 0x42, 0x46, 0x43, 0x47, 0x9C, 0x48, 0x54, 0x51, 0x52, 0x53, 0x58, 0x55, 0x56, 0x57,
 /* F */ 0x8C, 0x49, 0xCD, 0xCE, 0xCB, 0xCF, 0xCC, 0xE1, 0x70, 0xDD, 0xDE, 0xDB, 0xDC, 0x8D, 0x8E, 0xDF};
 
-static const char eyecatcher_plmh[] = { 0xC9, 0xC5, 0xE6, 0xD7, 0xD3, 0xD4, 0xC8, 0x40 }; // IEWPLMH + <BLANK>
-static const char eyecatcher_prat[] = { 0xC9, 0xC5, 0xE6, 0xD7, 0xD9, 0xC1, 0xE3, 0x40 };
-static const char eyecatcher_prdt[] = { 0xC9, 0xC5, 0xE6, 0xD7, 0xD9, 0xC4, 0xE3, 0x40 };
-static const char eyecatcher_lidx[] = { 0xC9, 0xC5, 0xE6, 0xD3, 0xC9, 0xC4, 0xE7, 0x40 };
-static const char eyecatcher_psegm[] = { 0xC9, 0xC5, 0xE6, 0xD7, 0xE2, 0xC5, 0xC7, 0xD4 };
-static const char text_pad[] = { 0xC9, 0xC5, 0xE6, 0xD7 };
+static const char eyecatcher_plmh[] = { 0xC9, 0xC5, 0xE6, 0xD7, 0xD3, 0xD4, 0xC8, 0x40 };  // IEWPLMH  + <BLANK>
+static const char eyecatcher_prat[] = { 0xC9, 0xC5, 0xE6, 0xD7, 0xD9, 0xC1, 0xE3, 0x40 };  // IEWPRAT  + <BLANK>
+static const char eyecatcher_prdt[] = { 0xC9, 0xC5, 0xE6, 0xD7, 0xD9, 0xC4, 0xE3, 0x40 };  // IEWPRDT  + <BLANK>
+static const char eyecatcher_lidx[] = { 0xC9, 0xC5, 0xE6, 0xD3, 0xC9, 0xC4, 0xE7, 0x40 };  // IEWLIDX  + <BLANK>
+static const char eyecatcher_psegm[] = { 0xC9, 0xC5, 0xE6, 0xD7, 0xE2, 0xC5, 0xC7, 0xD4 }; // IEWPSEGM + <BLANK>
+static const char text_pad[] = { 0xC9, 0xC5, 0xE6, 0xD7 }; // IEWL
 static const char no_checksum_val[] = { 0x95, 0x96, 0x83, 0x88 };  /* 'noch' in EBCDIC.  */
 
 static void
@@ -101,7 +101,6 @@ dump_bfd_zos (bfd *abfd, bfd_boolean b)
 {
   bfd_po_read_object_contents (abfd);
   bfd_default_set_arch_mach (abfd, bfd_arch_s390, 0);
-  printf("PLMH Version: %d\n", po_header(abfd).version);
 }
 
 /* Checking whether the first word in the header indicates a z/OS loader */
@@ -109,7 +108,10 @@ bfd_boolean
 bfd_is_zos_binary (bfd *abfd)
 {
   char byte;
-  bfd_seek(abfd, 0, SEEK_SET);
+
+  if( bfd_seek(abfd, 0, SEEK_SET) != 0 )
+    return FALSE;
+
   for(unsigned i=0;i<sizeof(eyecatcher_plmh);i++)
   {
     bfd_bread(&byte,1,abfd);
@@ -289,8 +291,6 @@ bfd_po_swap_po_name_header_in (bfd *abfd,
 {
   memset(dst, 0, sizeof(*dst));
   dst->alias_count = H_GET_32 (abfd, src->alias_count);
-  //memcpy(&dst->alias_count, src->alias_count, sizeof(src->alias_count));
-  printf("Alias count: %x\n", dst->alias_count);
 }
 
 static void
@@ -381,6 +381,18 @@ bfd_po_swap_prdt_out (bfd *abfd,
 }
 
 static void
+po_swap_prdt_page_header_in (bfd *abfd,
+			      struct po_external_prdt_page_header *src,
+			      struct po_internal_prdt_page_header *dst)
+{
+  memset(dst, 0, sizeof(*dst));
+  dst->page_number = H_GET_32 (abfd, &src->page_number);
+  dst->segment_index = H_GET_16 (abfd, &src->segment_index);
+  memcpy(dst->checksum, src->checksum, sizeof(dst->checksum));
+  dst->count = H_GET_16 (abfd, &src->reloc_count_total);
+}
+
+static void
 po_swap_prdt_page_header_out (bfd *abfd,
 			      struct po_internal_prdt_page_header *src,
 			      struct po_external_prdt_page_header *dst)
@@ -438,6 +450,17 @@ po_swap_reloc_64_ext_out (bfd *abfd,
 }
 
 static void
+bfd_po_swap_lidx_in (bfd *abfd, struct po_external_lidx *src,
+		                struct po_internal_lidx *dst)
+{
+  memset(dst, 0, sizeof(*dst));
+  memcpy(dst->fixed_eyecatcher, src->fixed_eyecatcher, sizeof(dst->fixed_eyecatcher));
+  dst->length = H_GET_32 (abfd, &src->length);
+  dst->version = src->version;
+  dst->element_count = H_GET_32 (abfd, &src->element_count);
+}
+
+static void
 bfd_po_swap_lidx_out (bfd *abfd, struct po_internal_lidx *src,
 		      struct po_external_lidx *dst)
 {
@@ -449,6 +472,16 @@ bfd_po_swap_lidx_out (bfd *abfd, struct po_internal_lidx *src,
 }
 
 static void
+bfd_po_swap_lidx_entry_in (bfd *abfd, struct po_external_lidx_entry *src,
+                                      struct po_internal_lidx_entry *dst)
+{
+  memset(dst, 0, sizeof(*dst));
+  dst->type = src->type;
+  dst->entry_length = H_GET_32 (abfd, &src->entry_length);
+  dst->entry_offset = H_GET_32 (abfd, &src->entry_offset);
+}
+
+static void
 bfd_po_swap_lidx_entry_out (bfd *abfd, struct po_internal_lidx_entry *src,
 			    struct po_external_lidx_entry *dst)
 {
@@ -456,6 +489,17 @@ bfd_po_swap_lidx_entry_out (bfd *abfd, struct po_internal_lidx_entry *src,
   dst->type = src->type;
   H_PUT_32 (abfd, src->entry_length, &dst->entry_length);
   H_PUT_32 (abfd, src->entry_offset, &dst->entry_offset);
+}
+
+static void
+bfd_po_swap_psegm_in (bfd *abfd, struct po_external_psegm *src,
+                                 struct po_internal_psegm *dst)
+{
+  memset(dst, 0, sizeof(*dst));
+  memcpy(dst->fixed_eyecatcher, src->fixed_eyecatcher, sizeof(dst->fixed_eyecatcher));
+  dst->length = H_GET_32 (abfd, &src->length);
+  dst->version = src->version;
+  dst->entry_count = H_GET_32 (abfd, &src->entry_count);
 }
 
 static void
@@ -470,6 +514,17 @@ bfd_po_swap_psegm_out (bfd *abfd, struct po_internal_psegm *src,
 }
 
 static void
+bfd_po_swap_psegm_entry_in (bfd *abfd,
+			     struct po_external_psegm_entry *src,
+			     struct po_internal_psegm_entry *dst)
+{
+  memset(dst, 0, sizeof(*dst));
+  dst->length  = H_GET_32 (abfd, &src->length);
+  dst->offset = H_GET_32 (abfd, &src->offset);
+  dst->flags = src->flags;
+}
+
+static void
 bfd_po_swap_psegm_entry_out (bfd *abfd,
 			     struct po_internal_psegm_entry *src,
 			     struct po_external_psegm_entry *dst)
@@ -478,6 +533,16 @@ bfd_po_swap_psegm_entry_out (bfd *abfd,
   H_PUT_32 (abfd, src->length, &dst->length);
   H_PUT_32 (abfd, src->offset, &dst->offset);
   dst->flags = src->flags;
+}
+
+static void
+read_reloc_header (bfd *abfd,
+		   struct po_external_prdt_reloc_header *src,
+		   struct po_internal_prdt_reloc_header *dst)
+{
+  dst->type = src->type;
+  dst->reference_id = src->reference_id;
+  dst->reloc_count = H_GET_16 (abfd, &src->reloc_count);
 }
 
 static void
@@ -797,6 +862,34 @@ bfd_po_finalize_header (bfd *abfd)
 }
 
 static bfd_boolean
+bfd_po_input_psegm(bfd *abfd, struct po_internal_lidx_entry entry)
+{
+  char psegm[PSEGM_BASE_SIZE];
+  char psegm_entry[PSEGM_ENTRY_SIZE];
+
+  if( bfd_seek(abfd, entry.entry_offset, SEEK_SET) != 0 )
+    return FALSE;
+
+  if( bfd_bread(psegm, PSEGM_BASE_SIZE, abfd) != PSEGM_BASE_SIZE )
+    return FALSE;
+
+  bfd_po_swap_psegm_in(abfd, (struct po_external_psegm *) psegm, &po_psegm(abfd));
+
+  po_psegm_entries(abfd)=bfd_malloc(po_psegm(abfd).entry_count*sizeof(struct po_internal_psegm_entry));
+  if ( po_psegm_entries(abfd) == NULL )
+    return FALSE;
+
+  for (unsigned int i = 0; i < po_psegm(abfd).entry_count; i ++)
+    {
+      if (bfd_bread(psegm_entry, PSEGM_ENTRY_SIZE, abfd) != PSEGM_ENTRY_SIZE)
+        return FALSE;
+      bfd_po_swap_psegm_entry_in(abfd, (struct po_external_psegm_entry *) psegm_entry, &po_psegm_entries(abfd)[i]);
+    }
+
+  return TRUE;
+}
+
+static bfd_boolean
 bfd_po_output_psegm(bfd *abfd)
 {
   char psegm[PSEGM_BASE_SIZE];
@@ -810,6 +903,62 @@ bfd_po_output_psegm(bfd *abfd)
       bfd_po_swap_psegm_entry_out(abfd, &po_psegm_entries(abfd)[i], (struct po_external_psegm_entry *) psegm_entry);
       if (bfd_bwrite(psegm_entry, PSEGM_ENTRY_SIZE, abfd) != PSEGM_ENTRY_SIZE)
         return FALSE;
+    }
+
+  return TRUE;
+}
+
+static bfd_boolean
+bfd_po_input_header_lidx (bfd *abfd)
+{
+  /* Input LIDX header */
+  char *lidx;
+  lidx=bfd_malloc(LIDX_HEADER_BASE_SIZE);
+  memset(lidx,0,LIDX_HEADER_BASE_SIZE);
+
+  if (bfd_bread(lidx, LIDX_HEADER_BASE_SIZE, abfd) != LIDX_HEADER_BASE_SIZE)
+  {
+    free(lidx);
+    return FALSE;
+  }
+
+  bfd_po_swap_lidx_in(abfd, (struct po_external_lidx *) lidx, &po_lidx(abfd));
+  free(lidx);
+
+  /* Input LIDX header entries */
+  char *lidx_entry;
+  lidx_entry = bfd_malloc(LIDX_HEADER_ENTRY_SIZE);
+  memset(lidx_entry,0,LIDX_HEADER_ENTRY_SIZE);
+
+  po_lidx_entries(abfd) = bfd_zmalloc(po_lidx(abfd).element_count*sizeof(struct po_internal_lidx_entry));
+  if ( po_lidx_entries(abfd) == NULL )
+    return FALSE;
+
+  for (unsigned int i = 0; i < po_lidx(abfd).element_count; i ++)
+    {
+      if (bfd_bread(lidx_entry, LIDX_HEADER_ENTRY_SIZE, abfd) != LIDX_HEADER_ENTRY_SIZE)
+        return FALSE;
+      bfd_po_swap_lidx_entry_in(abfd, (struct po_external_lidx_entry *) lidx_entry, &po_lidx_entries(abfd)[i]);
+    }
+
+  free(lidx_entry);
+
+  for (unsigned int i = 0; i < po_lidx(abfd).element_count; i ++)
+    {
+      switch (po_lidx_entries(abfd)[i].type)
+        {
+          case LIDX_ENTRY_TYPE_PSEGM:
+            /* Input LIDX entries */
+            if ( ! bfd_po_input_psegm(abfd, po_lidx_entries(abfd)[i]) )
+              return FALSE;
+            break;
+          case LIDX_ENTRY_TYPE_PGSTB:
+            break;
+          case LIDX_ENTRY_TYPE_PDSIT:
+            break;
+          default:
+            break;
+        }
     }
 
   return TRUE;
@@ -854,20 +1003,11 @@ bfd_po_output_header_lidx (bfd *abfd)
   return TRUE;
 }
 
-void
-test_print(unsigned char *data, unsigned int len)
-{
-  unsigned char outdata[len];
-  convert_ibm1047_to_iso88591 (outdata, data, len);
-  printf("%s\n",outdata);
-  for(unsigned int i=0;i<len;i++)
-    printf("0x%x;",data[i]);
-  printf("\n");
-}
-
 bfd_boolean
 bfd_po_input_header (bfd *abfd)
 {
+  unsigned int jump_target;
+
   /* Input header */
   unsigned char header_buf[PLMH_BASE_SIZE];
   if ( bfd_seek(abfd, 0, SEEK_SET)!=0 || bfd_bread(header_buf, PLMH_BASE_SIZE, abfd) != PLMH_BASE_SIZE)
@@ -875,14 +1015,15 @@ bfd_po_input_header (bfd *abfd)
     printf("Input header failed\n");
     return FALSE;
   }
-  printf("IEWPLMH header: ");
-  test_print(header_buf,sizeof(header_buf));
   bfd_po_swap_plmh_in(abfd, (struct po_external_plmh *) header_buf, &po_header(abfd));
   po_rec_decl_count(abfd) = po_header(abfd).rec_decl_count;
 
   /* Input header record declarations */
   unsigned char rec_decl_buf[HEADER_REC_DECL_SIZE];
-  po_rec_decls(abfd)=bfd_malloc(sizeof(struct po_internal_header_rec_decl)*po_rec_decl_count(abfd));
+
+  if ( po_rec_decl_count(abfd) )
+    po_rec_decls(abfd)=bfd_zmalloc(po_rec_decl_count(abfd)*sizeof(struct po_internal_header_rec_decl));
+
   for (unsigned int i = 0; i < po_rec_decl_count(abfd); i++)
     {
       if (bfd_bread(rec_decl_buf, HEADER_REC_DECL_SIZE, abfd) != HEADER_REC_DECL_SIZE)
@@ -890,8 +1031,6 @@ bfd_po_input_header (bfd *abfd)
         printf("Input header record failed\n");
         return FALSE;
       }
-      printf("IEWPLMH repeating section: ");
-      test_print(rec_decl_buf,sizeof(rec_decl_buf));
       bfd_po_swap_header_rec_decl_in(abfd, (struct po_external_header_rec_decl *) rec_decl_buf, &po_rec_decls(abfd)[i]);
     }
 
@@ -902,13 +1041,14 @@ bfd_po_input_header (bfd *abfd)
     printf("Input po name header failed\n");
     return FALSE;
   }
-  printf("PO name header: ");
-  test_print(name_header_buf,sizeof(name_header_buf));
   bfd_po_swap_po_name_header_in(abfd, (struct po_external_po_name_header *) name_header_buf, &po_name_header(abfd));
 
   /* Input PO name header entries */
   unsigned char name_header_entry_buf[PO_NAME_HEADER_ENTRY_SIZE];
-  po_name_header_entries(abfd)=bfd_malloc(po_name_header(abfd).alias_count*sizeof(struct po_internal_po_name_header_entry));
+
+  if (po_name_header(abfd).alias_count)
+    po_name_header_entries(abfd) = bfd_zmalloc(po_name_header(abfd).alias_count*sizeof(struct po_internal_po_name_header_entry));
+
   for (unsigned int i = 0; i < po_name_header(abfd).alias_count; i ++)
     {
       if (bfd_bread(name_header_entry_buf, PO_NAME_HEADER_ENTRY_SIZE, abfd) != PO_NAME_HEADER_ENTRY_SIZE)
@@ -916,33 +1056,47 @@ bfd_po_input_header (bfd *abfd)
         printf("Input po name header entries failed\n");
         return FALSE;
       }
-      printf("PO name header entries: ");
-      test_print(name_header_entry_buf,sizeof(name_header_entry_buf));
       bfd_po_swap_po_name_header_entry_in(abfd, (struct po_external_po_name_header_entry *) name_header_entry_buf, &po_name_header_entries(abfd)[i]);
     }
 
   /* Input PO names */
   unsigned char *name_ibm1047;
   unsigned int alias_length;
-  po_names(abfd)=bfd_malloc(4*po_name_header(abfd).alias_count);
+
+  po_names(abfd) = bfd_zmalloc(po_name_header(abfd).alias_count*sizeof(char*));
+  if ( po_names(abfd) == NULL )
+    return FALSE;
+
   for (unsigned int i = 0; i < po_name_header(abfd).alias_count; i ++)
     {
       alias_length = po_name_header_entries(abfd)[i].alias_length;
-      name_ibm1047 = bfd_malloc(alias_length);
+
+      if(alias_length<8)
+        alias_length=8;
+
+      name_ibm1047 = bfd_malloc(alias_length*sizeof(char));
       if (name_ibm1047 == NULL)
       {
         printf("Input po name header entries failed (malloc)\n");
         return FALSE;
       }
+      memset(name_ibm1047,0,alias_length);
+
       if (bfd_bread(name_ibm1047, alias_length, abfd) != alias_length)
       {
         printf("Input po name header entries failed (bread)\n");
         free(name_ibm1047);
         return FALSE;
       }
-      printf("PO name: ");
-      test_print(name_ibm1047,alias_length);
-      po_names(abfd)[i]=bfd_malloc(alias_length);
+
+      po_names(abfd)[i]=bfd_malloc(alias_length*sizeof(char));
+      if ( po_names(abfd)[i] == NULL )
+      {
+        free(name_ibm1047);
+        return FALSE;
+      }
+
+      memset(po_names(abfd)[i],0,alias_length);
       convert_ibm1047_to_iso88591(name_ibm1047, po_names(abfd)[i], alias_length);
       free(name_ibm1047);
     }
@@ -951,49 +1105,91 @@ bfd_po_input_header (bfd *abfd)
   unsigned char pmar[PMAR_SIZE];
   if (bfd_bread(pmar, PMAR_SIZE, abfd) != PMAR_SIZE)
     return FALSE;
-  printf("PMAR: ");
-  test_print(pmar,sizeof(pmar));
   bfd_po_swap_pmar_in(abfd, (struct po_external_pmar *) pmar, &po_pmar(abfd));
 
   /* Input PMARL */
   unsigned char pmarl[PMARL_SIZE];
   if (bfd_bread(pmarl, PMARL_SIZE, abfd) != PMARL_SIZE)
     return FALSE;
-  printf("PMARL: ");
-  test_print(pmarl,sizeof(pmarl));
   bfd_po_swap_pmarl_in(abfd, (struct po_external_pmarl *) pmarl, &po_pmarl(abfd));
+  po_text_length(abfd) = po_pmarl(abfd).length_text;
+  po_text_offset(abfd) = po_pmarl(abfd).offset_text; 
+
+  if (!bfd_set_start_address(abfd,po_pmar(abfd).main_entry_point_offset))
+    return FALSE;
+
+  po_headers_computed(abfd) = TRUE;
 
   /* Input PRAT and PRDT */
   unsigned char prat[PRAT_BASE_SIZE];
   if (bfd_bread(prat, PRAT_BASE_SIZE, abfd) != PRAT_BASE_SIZE)
     return FALSE;
-  printf("PRAT/PRDY: ");
-  test_print(prat,sizeof(prat));
   bfd_po_swap_prat_in(abfd, (struct po_external_prat *) prat, &po_prat(abfd));
+  po_prat_entries(abfd)=bfd_zalloc (abfd, po_prat(abfd).total_entries);
 
-  unsigned char prat_entry[4];
-  unsigned int entry;
-  unsigned int total_entries=po_prat(abfd).total_entries;
-  if(total_entries)
+  unsigned char *prat_entry;
+  for (unsigned int i = 0; i < po_prat(abfd).total_entries + 1; i++)
   {
-    printf("PRAT po_prat(abfd).total_entries: %d\n", total_entries);
-    po_prat_entries(abfd)=bfd_zalloc (abfd, total_entries);
-    for (unsigned int i = 0; i < po_prat(abfd).total_entries + 1; i++) {
-      if (bfd_bread(prat_entry, 4, abfd) != 4)
-        return FALSE;
-      entry = H_GET_32 (abfd, prat_entry);
-      po_prat_entries(abfd)[i]=entry;
-    }
+    prat_entry=bfd_malloc(po_prat(abfd).single_entry_length);
+    if ( prat_entry == NULL )
+      return FALSE;
+
+    memset(prat_entry, 0, po_prat(abfd).single_entry_length);
+    if (bfd_bread(prat_entry, po_prat(abfd).single_entry_length, abfd) != po_prat(abfd).single_entry_length)
+      return FALSE;
+
+    switch(po_prat(abfd).single_entry_length)
+    {
+      case 2: 
+        po_prat_entries(abfd)[i] = H_GET_16 (abfd, prat_entry);
+	break;
+      case 4: 
+      default:
+        po_prat_entries(abfd)[i] = H_GET_32 (abfd, prat_entry);
+	break;
+    };
+    free(prat_entry);
   }
 
-  char prat_pad[8];
-  if (bfd_bread(prat_pad, po_prat_pad_bytes(abfd), abfd) != po_prat_pad_bytes(abfd))
+  po_prat_pad_bytes(abfd) = po_prat(abfd).length - (PRAT_BASE_SIZE + ( po_prat(abfd).total_entries + 1 ) * po_prat(abfd).single_entry_length );
+  jump_target = bfd_tell(abfd) + po_prat_pad_bytes(abfd);
+
+  if( bfd_seek(abfd, jump_target, SEEK_SET) != 0 )
     return FALSE;
 
   char prdt[PRDT_BASE_SIZE];
   if (bfd_bread(prdt, PRDT_BASE_SIZE, abfd) != PRDT_BASE_SIZE)
     return FALSE;
   bfd_po_swap_prdt_in(abfd, (struct po_external_prdt *) prdt, &po_prdt(abfd));
+
+  /* Read the PRDTs */
+  po_prdt_page_headers (abfd) = bfd_zalloc (abfd, po_prat(abfd).total_entries);
+  unsigned char *page_header;
+  unsigned char *reloc_header;
+
+  page_header = bfd_malloc(sizeof(struct po_external_prdt_page_header));
+  reloc_header = bfd_malloc(sizeof(struct po_external_prdt_reloc_header));
+
+  for (unsigned int page = 0; page < po_prat(abfd).total_entries; page++)
+  {
+    if (bfd_bread(page_header, sizeof(struct po_external_prdt_page_header), abfd) != sizeof(struct po_external_prdt_page_header) )
+      return FALSE;
+
+    po_swap_prdt_page_header_out (abfd, page_header, &po_prdt_page_headers(abfd)[page]);
+
+    if (bfd_bread(reloc_header, sizeof(struct po_external_prdt_reloc_header), abfd) != sizeof(struct po_external_prdt_reloc_header))
+      return FALSE;
+
+    //read_reloc_header(abfd, reloc_header,e)
+  }
+
+  jump_target = bfd_tell(abfd) + po_prdt(abfd).total_length - PRDT_BASE_SIZE - po_prat(abfd).total_entries * ( sizeof(page_header) + sizeof(reloc_header) );
+
+  if( bfd_seek(abfd, jump_target, SEEK_SET) != 0 )
+    return FALSE;
+
+  if(!bfd_po_input_header_lidx (abfd))
+    return FALSE;
 
   return TRUE;
 }
@@ -1375,21 +1571,33 @@ bfd_po_read_object_contents (__attribute ((unused)) bfd *abfd)
   /* Initialize all parts of tdata to zeros.  */
   memset (po_tdata (abfd), 0, sizeof (struct po_obj_tdata));
 
-  printf("Reading header...\n");
   if (!bfd_po_read_header(abfd))
     return FALSE;
-  printf("Header processed\n");
 
-  printf("Reading text...\n");
   /* Read text */
-  po_section_contents(abfd)=bfd_malloc(sizeof(po_section_contents(abfd)));
-  if (po_section_contents(abfd) != NULL)
-  {
-    printf("Text length: %d\n",po_text_length(abfd));
-    if (bfd_bread (po_section_contents(abfd), po_text_length(abfd), abfd) != po_text_length(abfd))
-      return FALSE;
-  }
-  printf("Text processed\n");
+  po_section_contents(abfd) = bfd_malloc(po_text_length(abfd));
+  if (po_section_contents(abfd) == NULL)
+    return FALSE;
+
+  if( bfd_seek(abfd, po_text_offset(abfd), SEEK_SET) != 0 )
+    return FALSE;
+
+  if (bfd_bread (po_section_contents(abfd), po_text_length(abfd), abfd) != po_text_length(abfd))
+    return FALSE;
+
+  /*
+  printf("\n------------------------------------------------------------------\n");
+
+  for( unsigned int i = 0; i < po_text_length(abfd); i++ )
+    printf("%c", po_section_contents(abfd)[i]);
+
+  printf("\n------------------------------------------------------------------\n");
+
+  for( unsigned int i = 0; i < po_text_length(abfd); i++ )
+    printf("%c", ibm1047_to_iso88591[po_section_contents(abfd)[i]]);
+
+  printf("\n------------------------------------------------------------------\n");
+  */
 
   return TRUE;
 }

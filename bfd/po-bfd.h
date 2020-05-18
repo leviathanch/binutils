@@ -73,9 +73,9 @@ struct po_obj_tdata {
   struct po_internal_lidx_entry            *lidx_entries;
   struct po_internal_psegm_entry           *psegm_entries;
   struct po_internal_po_name_header_entry  *po_name_header_entries;
-  char                                    **po_names;
+  unsigned char                            **po_names;
   bfd_vma                                  *prat_entries;
-  char                                     *section_contents;
+  unsigned char                            *section_contents;
 
   /* Computed values */
   unsigned                                  rec_decl_count;

@@ -141,11 +141,11 @@ struct po_external_prat {
   unsigned char fixed_eyecatcher[8];
   unsigned char length[4];
   unsigned char version;
-  unsigned char reserved0[3]; /* MBZ */
-  unsigned char occupied_entries[4]; /* TODO */
-  unsigned char total_entries[4]; /* TODO */
-  unsigned char single_entry_length[2]; /* TODO */
-  unsigned char unknown_flags[2]; /* TODO */
+  unsigned char reserved0[3];
+  unsigned char occupied_entries[4];
+  unsigned char total_entries[4];
+  unsigned char single_entry_length[2];
+  unsigned char unknown_flags[2];
 };
 
 /*
